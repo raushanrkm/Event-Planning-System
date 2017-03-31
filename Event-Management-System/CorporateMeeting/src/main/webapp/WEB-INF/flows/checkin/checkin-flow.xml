@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- @Author:Samikshya Adhikari -->
+
+<flow xmlns="http://www.springframework.org/schema/webflow"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/webflow
+        http://www.springframework.org/schema/webflow/spring-webflow.xsd">
+
+<var name="reservation" class="com.meeting.entity.Reservation" />
+<var name="newSchedule"  class="com.meeting.entity.Schedule" />
+
+	<action-state id="anythingElse">
+		<!--  --><evaluate expression="userValidationHelper.validate(currentUser.name)" result="reservation" />
+		<transition to="startReservation" />
+	</action-state>
+	<view-state id="startReservation" view="startReservation" >
+		<transition on="reservationStarted" to="datePickerPage" validate="false"/>
+	</view-state>
+	<view-state id="datePickerPage" view="datePickerPage" model="reservation">
+	
+		<transition on="datePicked" to="loadVenueList" validate="false" />
+		
+	</view-state>
+	
+	 <!-- //for separate form element validation separate model are needed because it validates on model but binds with model attribute -->
+	<action-state id="loadVenueList" >
+				<evaluate expression="registrationHelper.getAllHalls(reservation.schedule)" result="flowScope.hallList" />
+		<transition to="venueList" />
+	</action-state>
+
+	<view-state id="venueList" view="venueList" model="reservation">
+		<transition on="venueSelected" to="patchHall" validate="false"/>
+		<transition on="backToDatePickerPage" to="datePickerPage" validate="false"/>
+	</view-state>
+	<action-state id="patchHall" >
+		<evaluate expression="registrationHelper.patchHall(reservation.hall.id)" result="reservation.hall" />
+		<transition to="detailPage" />
+	</action-state>
+	
+	
+
+	<view-state id="detailPage" view="detailPage" model="reservation">
+		<transition on="detailPageInfoCollected" to="calculateReservationCost" validate="false"/>
+		<transition on="backToVenueList" to="venueList" validate="false"/>
+
+	</view-state>
+<action-state id="calculateReservationCost" >
+		<evaluate expression="registrationHelper.calculateCostwithTax(reservation)" result="reservation" />
+		<transition to="reservation" />
+	</action-state>
+
+	<view-state id="reservation" view="reservation" model="reservation">
+		<transition on="reservationConfirmed" to="payment" validate="false"/>
+		<transition on="backToDetailPage" to="detailPage" validate="false"/>
+	</view-state>
+	<view-state id="payment" view="payment" model="reservation">
+		<transition on="paymentConfirmed" to="saveConformation" validate="false" />
+		<transition on="backToReservation" to="reservation" validate="false"/>
+	</view-state>
+
+
+<action-state id="saveConformation" >
+		<evaluate expression="registrationHelper.saveReservation(reservation)" />
+		<transition to="endState" />
+	</action-state>
+	<!--  ><view-state id="payment" view="payment" model="reservation">
+		<transition on="paymentConfirmed" to="thankYou" validate="false" />
+		<transition on="backToReservation" to="reservation" validate="false"/>
+	</view-state>-->
+
+	<!--  ><view-state id="thankYou" model="reservation">
+		<transition on="payed" to="reservationDetail" validate="false"/>
+	</view-state>
+	<view-state id="reservationDetail" view="reservationDetail" model="reservation">
+		<transition on="reservationDetail" to="endState"/>
+	</view-state>-->
+	<!--  ><view-state id="reservationHistory" view="reservationHistory" model="reservation">
+		<transition on="reservationHistory" to="reservationHistory" validate="false"/>
+	</view-state>-->
+	
+	<end-state id="endState"/>	
+
+	<global-transitions>
+		<transition on="cancelled" to="endState" />
+	</global-transitions>
+
+
+	<!-- <end-state id="cancelPage" view="loginSuccessPage.jsp" />  -->
+
+</flow>
